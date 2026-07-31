@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wage Increase Calculator</title>
+<style>
+  :root{
+    --paper:#F2F1EC;
+    --ink:#1B2A4A;
+    --ink-soft:#4B5875;
+    --line:#C9CDD6;
+    --money:#1E6E52;
+    --money-soft:#E3EFE9;
+    --gold:#B9822E;
+    --gold-soft:#F5E9D6;
+    --card:#FFFFFF;
+    --danger:#B23A2E;
+    --pp-head:#F0D84A;
+    --pp-head-text:#4A3B08;
+    --et-head:#2E7DB5;
+    --et-head-text:#FFFFFF;
+    --nr-label-bg:#C9A227;
+    --nr-label-text:#3A2E06;
+    --nr-cell-bg:#E3D77E;
+    --row-alt:#EDEDE9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    font-family:'IBM Plex Sans',Arial,sans-serif;
+    color:var(--ink);
+    padding:40px 16px 60px;
+  }
+  .sheet{
+    max-width:940px;
+    margin:0 auto;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .sheet-head{
+    background:#243238;
+    color:var(--paper);
+    padding:18px 34px;
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:0px solid;
+  }
+  .sheet-head h1{
+    font-family:'Source Serif Pro',Georgia,serif;
+    font-size:22px;
+    font-weight:600;
+    margin:0;
+    letter-spacing:0.2px;
+  }
+  .sheet-head span{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:#C9CDE0;
+  }
+  form{
+    padding:14px 32px 4px;
+    max-width:760px;
+  }
+  .row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .row.single{grid-template-columns:1fr;}
+  .row.triple{grid-template-columns:1fr 1fr 1fr;}
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .field label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.7px;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .label-with-icon{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .label-with-icon .info-icon{
+    width:14px;
+    height:14px;
+    font-size:10px;
+  }
+  .field input, .field select{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    padding:7px 9px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:#FBFBF9;
+    color:var(--ink);
+  }
+  .field select{font-family:'IBM Plex Sans',Arial,sans-serif;}
+  .field input:focus, .field select:focus{
+    outline:none;
+    border-color:var(--gold);
+    box-shadow:0 0 0 2px var(--gold-soft);
+  }
+  .field input::placeholder{color:#A9AEBA;font-family:'IBM Plex Sans',Arial,sans-serif;}
+  .date-input-wrap{
+    position:relative;
+    display:flex;
+    align-items:stretch;
+    gap:6px;
+  }
+  .date-input-wrap input.date-text{flex:1;}
+  .calendar-btn{
+    background:#FBFBF9;
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:0 10px;
+    font-size:14px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+  }
+  .calendar-btn:hover{background:var(--row-alt);}
+  .hidden-date-picker{
+    position:absolute;
+    width:0;
+    height:0;
+    opacity:0;
+    border:none;
+    pointer-events:none;
+  }
+  .field.error input{border-color:var(--danger);background:#FBF1F0;}
+  .error-msg{
+    font-size:11px;
+    color:var(--danger);
+    min-height:14px;
+  }
+  .divider{
+    border:none;
+    border-top:1px dashed var(--line);
+    margin:2px 0 14px;
+  }
+
+  /* Pay periods & earnings table section */
+  .periods-section{
+    padding:6px 32px 20px;
+    border-top:2px solid var(--line);
+  }
+  .periods-section h2{
+    font-family:'Source Serif Pro',Georgia,serif;
+    font-size:17px;
+    margin:14px 0 4px;
+    color:var(--ink);
+  }
+  .periods-hint{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:0 0 10px;
+    line-height:1.5;
+  }
+  .periods-toolbar{
+    display:flex;
+    gap:10px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .btn-sm{
+    background:var(--card);
+    color:var(--ink);
+    border:1px solid var(--ink);
+    padding:8px 14px;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.3px;
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .btn-sm:hover{background:var(--row-alt);}
+  .btn-sm.add{border-color:var(--money);color:var(--money);}
+  .btn-sm.add:hover{background:var(--money-soft);}
+  .btn-sm:disabled{
+    opacity:0.45;
+    cursor:not-allowed;
+    background:var(--card);
+  }
+  .btn-sm:disabled:hover{background:var(--card);}
+  .shortcut-hint{
+    font-size:10.5px;
+    font-weight:400;
+    opacity:0.75;
+    letter-spacing:0;
+    text-transform:none;
+  }
+
+  /* Add-column modal */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    width:100%;
+    height:100%;
+    background:rgba(20,26,40,0.55);
+    z-index:1000;
+    align-items:center;
+    justify-content:center;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    background:var(--card);
+    border-radius:6px;
+    padding:22px 24px;
+    width:340px;
+    max-width:90vw;
+    box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  }
+  .modal-box h3{
+    margin:0 0 14px;
+    font-family:'Source Serif Pro',Georgia,serif;
+    font-size:16px;
+    color:var(--ink);
+  }
+  .modal-box input[type="text"]{
+    width:100%;
+    font-family:'IBM Plex Sans',Arial,sans-serif;
+    font-size:14px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:#FBFBF9;
+    color:var(--ink);
+    box-sizing:border-box;
+  }
+  .modal-box input[type="text"]:focus{
+    outline:none;
+    border-color:var(--gold);
+    box-shadow:0 0 0 2px var(--gold-soft);
+  }
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:16px;
+  }
+  .table-wrap{
+    overflow-x:auto;
+    border:1px solid var(--line);
+    border-radius:4px;
+  }
+  table.periods-table{
+    border-collapse:collapse;
+    width:100%;
+    min-width:560px;
+    font-size:13px;
+  }
+  table.periods-table th, table.periods-table td{
+    border:1px solid var(--line);
+    padding:3px 4px;
+    text-align:center;
+    white-space:nowrap;
+  }
+  th.pp-group{
+    background:var(--pp-head);
+    color:var(--pp-head-text);
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+  th.et-group{
+    background:var(--et-head);
+    color:var(--et-head-text);
+    font-size:13px;
+  }
+  th.et-group .et-caption{
+    font-size:10px;
+    text-transform:none;
+    letter-spacing:0.2px;
+    font-weight:400;
+    opacity:0.9;
+  }
+  th.sub-pp{
+    background:#FBF3CE;
+    color:var(--pp-head-text);
+    font-weight:600;
+    font-size:12px;
+  }
+  th.sub-et{
+    background:#DDEEF9;
+    color:#0F4A70;
+    font-weight:600;
+    font-size:12px;
+    position:relative;
+  }
+  th.sub-et input.col-name-input{
+    width:100%;
+    background:transparent;
+    border:none;
+    border-bottom:1px dashed #8FB9D6;
+    color:#0F4A70;
+    font-family:'IBM Plex Sans',Arial,sans-serif;
+    font-weight:600;
+    font-size:12px;
+    text-align:center;
+    padding:2px 4px;
+  }
+  th.sub-et input.col-name-input:focus{
+    outline:none;
+    border-bottom:1px solid #0F4A70;
+    background:#FFFFFF;
+  }
+  .col-remove{
+    display:block;
+    margin-top:4px;
+    font-size:10px;
+    color:#0F4A70;
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;
+    border:none;
+    padding:0;
+  }
+  th.action-head{
+    background:var(--ink);
+    color:var(--paper);
+    font-size:12px;
+    font-weight:600;
+  }
+  .remove-row-btn{
+    background:none;
+    border:1px solid var(--danger);
+    color:var(--danger);
+    border-radius:3px;
+    padding:3px 8px;
+    font-size:11px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .remove-row-btn:hover{background:#FBF1F0;}
+  td.cell-overlap{
+    background:#FBE0DE !important;
+    box-shadow: inset 0 0 0 2px var(--danger);
+  }
+  td.cell-overlap input.date-text{
+    background:#FBE0DE;
+    border-color:var(--danger);
+    color:var(--danger);
+    font-weight:600;
+  }
+  tbody tr:nth-child(even){background:var(--row-alt);}
+  td input.date-text{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:4px 4px;
+    width:82px;
+    background:#FBFBF9;
+    text-align:center;
+  }
+  td input.date-text:disabled{
+    background:#E6E5E0;
+    color:var(--ink-soft);
+    border-color:var(--line);
+  }
+  td input[type="number"]{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:4px 5px;
+    width:64px;
+    text-align:right;
+    background:#FFFFFF;
+    -moz-appearance:textfield;
+    appearance:textfield;
+  }
+  td input[type="number"]::-webkit-outer-spin-button,
+  td input[type="number"]::-webkit-inner-spin-button{
+    -webkit-appearance:none;
+    margin:0;
+  }
+  td input[type="number"]:focus, td input.date-text:focus{
+    outline:none;
+    border-color:var(--gold);
+    box-shadow:0 0 0 2px var(--gold-soft);
+  }
+  tr.new-rate-row td{
+    background:var(--nr-cell-bg);
+    padding:8px 10px;
+  }
+  tr.new-rate-row td.nr-blank{background:var(--card);}
+  tr.new-rate-row td.nr-label{
+    background:var(--nr-label-bg);
+    color:var(--nr-label-text);
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    font-size:12px;
+  }
+  tr.new-rate-row td input[type="number"]{
+    background:#FBF7E4;
+  }
+
+  /* Calculation result panels */
+  .calc-section{
+    padding:6px 32px 20px;
+    border-top:2px solid var(--line);
+  }
+  .calc-section h2{
+    font-family:'Source Serif Pro',Georgia,serif;
+    font-size:16px;
+    margin:14px 0 4px;
+    color:var(--ink);
+  }
+  .calc-hint{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:0 0 10px;
+    line-height:1.5;
+  }
+  .calc-error{
+    font-size:12px;
+    color:var(--danger);
+    margin:-4px 0 12px;
+  }
+  table.calc-table{
+    border-collapse:collapse;
+    width:100%;
+    font-size:12.5px;
+    margin-top:6px;
+  }
+  table.calc-table th, table.calc-table td{
+    border:1px solid var(--line);
+    padding:6px 8px;
+    text-align:right;
+  }
+  table.calc-table th{
+    background:var(--ink);
+    color:var(--paper);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.3px;
+    text-align:right;
+  }
+  table.calc-table th:first-child, table.calc-table td:first-child{text-align:left;}
+  table.calc-table tbody tr:nth-child(even){background:var(--row-alt);}
+  table.calc-table tfoot td{
+    font-weight:700;
+    background:var(--money-soft);
+    color:var(--money);
+  }
+  .ytd-steps{
+    margin-top:10px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    background:var(--money-soft);
+    border:1px solid #C9E0D3;
+    border-radius:4px;
+    padding:12px 16px;
+    line-height:1.9;
+    color:var(--ink);
+  }
+  .ytd-steps .final{
+    color:var(--money);
+    font-weight:700;
+  }
+  .summary-box{
+    margin-top:10px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    background:#FBFBF9;
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:16px 18px;
+    line-height:1.7;
+    color:var(--ink);
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  #copyBtn{margin-top:10px;}
+  #copyBtn.copied{border-color:var(--money);color:var(--money);}
+
+  /* Info tooltip icon */
+  .section-title-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:20px 0 6px;
+  }
+  .section-title-row h2{margin:0;}
+  .info-icon{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:var(--et-head);
+    color:#FFFFFF;
+    font-size:12px;
+    font-weight:700;
+    font-style:normal;
+    cursor:help;
+    flex-shrink:0;
+  }
+  .calc-toolbar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .periods-error{
+    font-size:12px;
+    color:var(--danger);
+    margin:-6px 0 14px;
+  }
+  .periods-warning{
+    display:none;
+    font-size:12.5px;
+    color:var(--danger);
+    background:#FBEAE8;
+    border:1px solid #E8A79E;
+    border-radius:4px;
+    padding:10px 14px;
+    margin:0 0 14px;
+    line-height:1.6;
+    font-weight:600;
+  }
+  .periods-warning.show{display:block;}
+  .periods-warning strong{font-weight:700;}
+
+  /* Tabs */
+  .tab-nav{
+    display:flex;
+    gap:2px;
+    background:#43216a;
+    padding:0 32px;
+  }
+  .tab-btn{
+    background:none;
+    border:none;
+    color:#AEB8D4;
+    padding-top:5px;
+    padding-bottom:5px;
+    padding-left:18px;
+    padding-right:18px;
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:0.3px;
+    text-transform:uppercase;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+  }
+  .tab-btn:hover{color:#FFFFFF;}
+  .tab-btn.active{
+    color:#FFFFFF;
+    border-bottom:3px solid var(--gold);
+  }
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* Top toolbar: clear / export / import */
+  .top-toolbar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    padding:10px 32px 0;
+  }
+  .btn-sm.danger{border-color:var(--danger);color:var(--danger);}
+  .btn-sm.danger:hover{background:#FBF1F0;}
+  .file-import-label{
+    background:var(--card);
+    color:var(--ink);
+    border:1px solid var(--ink);
+    padding:8px 14px;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.3px;
+    border-radius:3px;
+    cursor:pointer;
+    display:inline-block;
+  }
+  .file-import-label:hover{background:var(--row-alt);}
+
+  /* Saved calculations tab */
+  .saved-section{padding:20px 32px 40px;}
+  .saved-empty{
+    font-size:13px;
+    color:var(--ink-soft);
+    padding:20px 0;
+  }
+  .saved-card{
+    border:1px solid var(--line);
+    border-radius:4px;
+    margin-bottom:16px;
+    overflow:hidden;
+  }
+  .saved-card-head{
+    background:var(--row-alt);
+    padding:10px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .saved-card-head .saved-title{
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--ink);
+  }
+  .saved-card-head .saved-time{
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+  .saved-card-actions{display:flex;gap:8px;}
+  .saved-card pre{
+    margin:0;
+    padding:14px 16px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    line-height:1.6;
+    white-space:pre-wrap;
+    word-break:break-word;
+    background:#FBFBF9;
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="sheet-head">
+    <h1>Wage Increase</h1>
+    <span>Paystub calculator</span>
+  </div>
+
+  <div class="tab-nav">
+    <button type="button" class="tab-btn active" id="tabBtnCalculator" onclick="switchTab('calculator')">Calculator</button>
+    <button type="button" class="tab-btn" id="tabBtnSaved" onclick="switchTab('saved')">Saved Calculations</button>
+  </div>
+
+  <div class="top-toolbar">
+    <button type="button" class="btn-sm danger" onclick="clearAll()">Clear all</button>
+    <label class="file-import-label">Import data
+      <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
+    </label>
+  </div>
+
+  <div class="tab-panel active" id="tabCalculator">
+
+  <form id="wageForm" novalidate>
+
+    <div class="row">
+      <div class="field">
+        <label for="employerName">Employer name</label>
+        <input type="text" id="employerName" placeholder="Yardi Rightsource" autocomplete="organization">
+      </div>
+      <div class="field">
+        <label for="fileLink">File link</label>
+        <input type="text" id="fileLink" placeholder="e.g. xycb">
+      </div>
+    </div>
+
+    <div class="row triple">
+      <div class="field">
+        <label for="topPayPeriodStart">Pay Period Start</label>
+        <div class="date-input-wrap">
+          <input type="text" id="topPayPeriodStart" class="date-text" inputmode="numeric" maxlength="10" placeholder="MM/DD/YYYY" oninput="formatDateInput(this)" onchange="calcTopPaystubFrequency()">
+          <button type="button" class="calendar-btn" onclick="openNativePicker('topPayPeriodStartPicker')" aria-label="Pick a date">&#128197;</button>
+          <input type="date" id="topPayPeriodStartPicker" class="hidden-date-picker" onchange="onNativeDatePicked(this, 'topPayPeriodStart', calcTopPaystubFrequency)" tabindex="-1">
+        </div>
+      </div>
+      <div class="field">
+        <label for="topPayPeriodEnd">Pay Period End</label>
+        <div class="date-input-wrap">
+          <input type="text" id="topPayPeriodEnd" class="date-text" inputmode="numeric" maxlength="10" placeholder="MM/DD/YYYY" oninput="formatDateInput(this)" onchange="calcTopPaystubFrequency()">
+          <button type="button" class="calendar-btn" onclick="openNativePicker('topPayPeriodEndPicker')" aria-label="Pick a date">&#128197;</button>
+          <input type="date" id="topPayPeriodEndPicker" class="hidden-date-picker" onchange="onNativeDatePicked(this, 'topPayPeriodEnd', calcTopPaystubFrequency)" tabindex="-1">
+        </div>
+      </div>
+      <div class="field">
+        <label for="topPaystubFrequency">Pay Frequency</label>
+        <input type="text" id="topPaystubFrequency" class="date-text" placeholder="Auto-calculated" disabled>
+      </div>
+    </div>
+
+    <div class="row single">
+      <div class="field" id="paystubsField">
+        <div class="label-with-icon">
+          <label for="numPaystubs">Number of paystubs</label>
+          <span class="info-icon" title="Please check the required number of paystubs before you proceed.">i</span>
+        </div>
+        <input type="text" id="numPaystubs" inputmode="numeric" placeholder="e.g. 6">
+        <div class="error-msg" id="paystubsError"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="effectiveDate">Effective date</label>
+        <div class="date-input-wrap">
+          <input type="text" id="effectiveDate" class="date-text" inputmode="numeric" maxlength="10" placeholder="MM/DD/YYYY" oninput="formatDateInput(this)" onchange="calcOnOrAfter()">
+          <button type="button" class="calendar-btn" onclick="openEffectiveDatePicker()" aria-label="Pick a date">&#128197;</button>
+          <input type="date" id="effectiveDatePicker" class="hidden-date-picker" onchange="onEffectiveDatePicked(this)" tabindex="-1">
+        </div>
+      </div>
+      <div class="field">
+        <label for="onOrAfter">On or after - (120 Days)</label>
+        <input type="text" id="onOrAfter" class="date-text" placeholder="Auto-calculated" disabled>
+      </div>
+    </div>
+
+    <hr class="divider">
+  </form>
+
+  <div class="periods-section">
+    <div class="section-title-row">
+      <h2>Pay periods &amp; earnings breakdown</h2>
+      <span class="info-icon" title="Uses Number of paystubs and Pay Frequency (derived from Pay Period Start/End above) to lay out the rows. Click &quot;Build table&quot; and the Start date auto-fills from the Pay Period Start field above, then every start/end date after it fills in automatically based on the frequency (weekly = 7 days, bi-weekly = 14 days, semi-monthly = calendar 1st-15th / 16th-end of month, monthly = calendar month, all adjusted for shorter months and leap years). Add as many earnings-type columns as you need. The &quot;New rate&quot; row at the bottom lets you enter an updated rate per earnings type. Re-clicking &quot;Build table&quot; (for example, to change the number of paystubs) keeps any hours, new rates, or imported data you've already entered - it only adds or removes rows as needed.">i</span>
+    </div>
+
+    <div class="periods-toolbar">
+      <button type="button" class="btn-sm" onclick="buildTable()">Build table</button>
+      <button type="button" class="btn-sm add" id="addColumnBtn" onclick="openAddColumnModal()" disabled>+ Add column</button>
+      <button type="button" class="btn-sm add" id="insertRowBtn" onclick="openInsertRowModal()" disabled>+ Insert row</button>
+    </div>
+    <div class="periods-error" id="periodsError"></div>
+
+    <div class="table-wrap">
+      <table class="periods-table" id="periodsTable">
+        <thead id="periodsThead"></thead>
+        <tbody id="periodsTbody"></tbody>
+      </table>
+    </div>
+    <div class="periods-warning" id="periodsWarning"></div>
+    <div class="periods-warning" id="onOrAfterWarning"></div>
+  </div>
+
+  <div class="calc-section">
+    <div class="section-title-row">
+      <h2>YTD details</h2>
+      <span class="info-icon" title="Please check the YTD requirement in SAM, Account note, Agency notes etc.">i</span>
+    </div>
+    <p class="calc-hint">
+      Optional &mdash; used to annualize year-to-date earnings to a 52-week year. Leave all three blank to skip it.
+    </p>
+    <div class="row triple" style="max-width:640px;">
+      <div class="field" id="ytdField">
+        <label for="ytdEarnings">YTD earnings ($)</label>
+        <input type="text" id="ytdEarnings" inputmode="decimal" placeholder="e.g. 18500.00">
+        <div class="error-msg" id="ytdError"></div>
+      </div>
+      <div class="field">
+        <label for="ytdStart">YTD start date</label>
+        <input type="text" id="ytdStart" class="date-text" inputmode="numeric" maxlength="10" placeholder="MM/DD/YYYY" oninput="formatDateInput(this)">
+      </div>
+      <div class="field">
+        <label for="ytdEnd">YTD end date</label>
+        <input type="text" id="ytdEnd" class="date-text" inputmode="numeric" maxlength="10" placeholder="MM/DD/YYYY" oninput="formatDateInput(this)" onchange="checkPeriodRestrictions()">
+      </div>
+    </div>
+    <div class="error-msg" id="dateError"></div>
+    <div class="periods-warning" id="ytdWarning"></div>
+  </div>
+
+  <div class="calc-section">
+    <h2>Wage increase summary</h2>
+    <p class="calc-hint">
+      Combines the paystub-average calculation (hours &times; new rate &times; pay periods/year) with the
+      YTD-based calculation (annualized to a 52-week year) into one plain-text summary you can copy.
+    </p>
+    <div class="calc-toolbar">
+      <button type="button" class="btn-sm" onclick="calculateAndExport()" title="Keyboard shortcut: Ctrl+Shift+Enter (Cmd+Shift+Enter on Mac)">Calculate wage increase &amp; export data <span class="shortcut-hint">(Ctrl+Shift+Enter)</span></button>
+    </div>
+    <div class="calc-error" id="summaryCalcError"></div>
+    <div id="summaryWrap" style="display:none;">
+      <pre class="summary-box" id="summaryText"></pre>
+      <button type="button" class="btn-sm" id="copyBtn" onclick="copySummary()">Copy to clipboard</button>
+      <button type="button" class="btn-sm add" onclick="saveCalculation()">Save to Saved Calculations</button>
+    </div>
+  </div>
+
+  </div>
+
+  <div class="tab-panel" id="tabSaved">
+    <div class="saved-section">
+      <h2 style="font-family:'Source Serif Pro',Georgia,serif;font-size:17px;margin:0 0 6px;color:var(--ink);">Saved Calculations</h2>
+      <p class="periods-hint">
+        Calculations saved during this browsing session. These are kept in memory only &mdash; they will be lost
+        if you close or refresh this page, so copy or export anything you need to keep.
+      </p>
+      <div id="savedListWrap"><div class="saved-empty">No calculations saved yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addColumnModal" onclick="if(event.target===this) closeAddColumnModal()">
+  <div class="modal-box">
+    <h3>Add earning type</h3>
+    <input type="text" id="addColumnInput" placeholder="e.g. Holiday, Bonus" maxlength="40" onkeydown="if(event.key==='Enter'){confirmAddColumn();}else if(event.key==='Escape'){closeAddColumnModal();}">
+    <div class="modal-actions">
+      <button type="button" class="btn-sm" onclick="closeAddColumnModal()">Cancel</button>
+      <button type="button" class="btn-sm add" onclick="confirmAddColumn()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="insertRowModal" onclick="if(event.target===this) closeInsertRowModal()">
+  <div class="modal-box">
+    <h3>Insert pay period</h3>
+    <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.7px;color:var(--ink-soft);font-weight:600;display:block;margin-bottom:4px;">Start date</label>
+    <input type="text" id="insertRowStartInput" class="date-text" style="width:100%;box-sizing:border-box;" maxlength="10" placeholder="MM/DD/YYYY" oninput="formatDateInput(this)" onkeydown="if(event.key==='Enter'){confirmInsertRow();}else if(event.key==='Escape'){closeInsertRowModal();}">
+    <div class="error-msg" id="insertRowError" style="margin-top:6px;"></div>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:10px 0 0;line-height:1.5;">
+      Fills in every missing pay period between this date and the next existing one, based on Pay Frequency,
+      then re-sorts the table chronologically.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn-sm" onclick="closeInsertRowModal()">Cancel</button>
+      <button type="button" class="btn-sm add" onclick="confirmInsertRow()">Insert</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="overlapModal" onclick="if(event.target===this) confirmOverlapCancel()">
+  <div class="modal-box">
+    <h3 style="color:var(--danger);">Overlap detected</h3>
+    <p style="font-size:13px;color:var(--danger);line-height:1.6;margin:0;font-weight:600;">
+      There is an overlap in the pay periods. Please review the pay period dates before proceeding with the calculation.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn-sm" onclick="confirmOverlapCancel()">Cancel</button>
+      <button type="button" class="btn-sm add" onclick="confirmOverlapContinue()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="warningPopupModal" onclick="if(event.target===this) closeWarningPopup()">
+  <div class="modal-box">
+    <h3 style="color:var(--danger);">&#9888; Warning</h3>
+    <p id="warningPopupText" style="font-size:13px;color:var(--danger);line-height:1.6;margin:0;font-weight:600;"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-sm add" onclick="closeWarningPopup()">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="endDateConfirmModal" onclick="if(event.target===this) confirmEndDateEditCancel()">
+  <div class="modal-box">
+    <h3>Confirm end date change</h3>
+    <p style="font-size:13px;color:var(--ink);line-height:1.6;margin:0;">
+      Changing this end date will update the next pay period's start date to the next calendar day. This may
+      result in overlapping or modified pay periods. Do you want to continue?
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn-sm" onclick="confirmEndDateEditCancel()">Cancel</button>
+      <button type="button" class="btn-sm add" onclick="confirmEndDateEditContinue()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Shared date helpers (MM/DD/YYYY) ---------- */
+
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+
+function blockArrowKeys(e){
+  if(e.key === 'ArrowUp' || e.key === 'ArrowDown'){
+    e.preventDefault();
+  }
+}
+
+function formatDateInput(el){
+  let digits = el.value.replace(/\D/g,'').slice(0,8);
+  let formatted = digits;
+  if(digits.length>=5) formatted = digits.slice(0,2)+'/'+digits.slice(2,4)+'/'+digits.slice(4,8);
+  else if(digits.length>=3) formatted = digits.slice(0,2)+'/'+digits.slice(2,4);
+  el.value = formatted;
+}
+
+function parseMDY(str){
+  if(!str) return null;
+  const m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!m) return null;
+  const mm = Number(m[1]), dd = Number(m[2]), yyyy = Number(m[3]);
+  const d = new Date(yyyy, mm-1, dd);
+  if(d.getMonth() !== mm-1 || d.getDate() !== dd) return null;
+  return d;
+}
+
+function toMDY(d){
+  return pad2(d.getMonth()+1) + '/' + pad2(d.getDate()) + '/' + d.getFullYear();
+}
+
+function addDays(d,n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+
+function toISODate(d){
+  return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+}
+
+function openNativePicker(pickerId){
+  const picker = document.getElementById(pickerId);
+  const textFieldId = pickerId.replace(/Picker$/, '');
+  const textEl = document.getElementById(textFieldId);
+
+  if(textEl){
+    const parsed = parseMDY(textEl.value.trim());
+    picker.value = parsed ? toISODate(parsed) : '';
+  }
+
+  if(picker.showPicker){
+    picker.showPicker();
+  } else {
+    picker.focus();
+    picker.click();
+  }
+}
+
+function onNativeDatePicked(pickerEl, targetFieldId, callback){
+  if(!pickerEl.value) return;
+  const parts = pickerEl.value.split('-').map(Number); // native date input always gives YYYY-MM-DD
+  const d = new Date(parts[0], parts[1]-1, parts[2]);
+  document.getElementById(targetFieldId).value = toMDY(d);
+  if(typeof callback === 'function') callback();
+}
+
+function openEffectiveDatePicker(){
+  openNativePicker('effectiveDatePicker');
+}
+
+function onEffectiveDatePicked(el){
+  if(!el.value) return;
+  const parts = el.value.split('-').map(Number); // native date input always gives YYYY-MM-DD
+  const d = new Date(parts[0], parts[1]-1, parts[2]);
+  document.getElementById('effectiveDate').value = toMDY(d);
+  calcOnOrAfter();
+}
+
+function getPayFrequencyKey(){
+  const start = parseMDY(document.getElementById('topPayPeriodStart').value.trim());
+  const end = parseMDY(document.getElementById('topPayPeriodEnd').value.trim());
+  if(!start || !end || start > end) return null;
+
+  const days = Math.round((end - start) / 86400000) + 1;
+  if(days === 7) return 'weekly';
+  if(days === 14) return 'biweekly';
+  if(days === 15 || days === 16) return 'semimonthly';
+  if(days >= 28 && days <= 31) return 'monthly';
+  return null;
+}
+
+function calcTopPaystubFrequency(){
+  const startRaw = document.getElementById('topPayPeriodStart').value.trim();
+  const endRaw = document.getElementById('topPayPeriodEnd').value.trim();
+  const freqEl = document.getElementById('topPaystubFrequency');
+
+  const start = parseMDY(startRaw);
+  const end = parseMDY(endRaw);
+  if(!start || !end){ freqEl.value = ''; return; }
+  if(start > end){ freqEl.value = 'End date must be after start date'; return; }
+
+  const days = Math.round((end - start) / 86400000) + 1;
+
+  let label;
+  if(days === 7) label = 'Weekly';
+  else if(days === 14) label = 'Bi-weekly';
+  else if(days === 15 || days === 16) label = 'Semi-monthly';
+  else if(days >= 28 && days <= 31) label = 'Monthly';
+  else label = 'Custom (' + days + ' days)';
+
+  freqEl.value = label;
+}
+
+function calcOnOrAfter(){
+  const raw = document.getElementById('effectiveDate').value.trim();
+  const onOrAfterEl = document.getElementById('onOrAfter');
+  const effectiveDate = parseMDY(raw);
+  if(!effectiveDate){
+    onOrAfterEl.value = '';
+    checkPeriodRestrictions();
+    return;
+  }
+  const onOrAfter = addDays(effectiveDate, -120);
+  onOrAfterEl.value = toMDY(onOrAfter);
+  checkPeriodRestrictions();
+}
+
+/* ---------- Pay periods & earnings table ---------- */
+
+let earningsColumns = ['Regular','OT','Sick','Vacation'];
+let numRows = 0;
+let periodDates = [];    // array of {start:Date|null, end:Date|null}
+let cellValues = {};     // key `${row}|${col}` -> string value
+let newRateValues = {};  // key `${col}` -> string value
+let currentFrequency = null; // frequency locked in at the time the table was last built
+
+function semiMonthlyEnd(start){
+  const day = start.getDate();
+  if(day <= 15) return new Date(start.getFullYear(), start.getMonth(), 15);
+  return new Date(start.getFullYear(), start.getMonth()+1, 0);
+}
+function semiMonthlyNextStart(end){
+  if(end.getDate() === 15) return new Date(end.getFullYear(), end.getMonth(), 16);
+  return new Date(end.getFullYear(), end.getMonth()+1, 1);
+}
+function monthlyEnd(start){
+  return new Date(start.getFullYear(), start.getMonth()+1, 0);
+}
+function monthlyNextStart(end){
+  return new Date(end.getFullYear(), end.getMonth()+1, 1);
+}
+
+function computeEndFromStart(start, frequency){
+  if(frequency === 'weekly') return addDays(start,6);
+  if(frequency === 'biweekly') return addDays(start,13);
+  if(frequency === 'semimonthly') return semiMonthlyEnd(start);
+  return monthlyEnd(start);
+}
+function computeNextStart(prevEnd, frequency){
+  if(frequency === 'weekly' || frequency === 'biweekly') return addDays(prevEnd,1);
+  if(frequency === 'semimonthly') return semiMonthlyNextStart(prevEnd);
+  return monthlyNextStart(prevEnd);
+}
+
+function computePeriodsFromFirstStart(firstStart, frequency, count){
+  const dates = [];
+  let start = new Date(firstStart);
+  for(let i=0;i<count;i++){
+    const end = computeEndFromStart(start, frequency);
+    dates.push({ start: new Date(start), end: new Date(end) });
+    start = computeNextStart(end, frequency);
+  }
+  return dates;
+}
+
+function isEffectiveDateValid(){
+  return !!parseMDY(document.getElementById('effectiveDate').value.trim());
+}
+
+function buildTable(){
+  const errEl = document.getElementById('periodsError');
+  errEl.textContent = '';
+
+  if(!isEffectiveDateValid()){
+    errEl.textContent = 'Please enter an Effective Date.';
+    showWarningPopup('Please enter an Effective Date.');
+    return;
+  }
+
+  const raw = document.getElementById('numPaystubs').value.trim();
+  const n = Number(raw);
+  if(!raw || !/^\d+$/.test(raw) || n <= 0){
+    errEl.textContent = 'Enter a valid "Number of paystubs" above before building the table.';
+    return;
+  }
+
+  const frequency = getPayFrequencyKey();
+  if(!frequency){
+    errEl.textContent = 'Enter valid Pay Period Start and End dates above so Pay Frequency can be determined.';
+    return;
+  }
+
+  const topStart = parseMDY(document.getElementById('topPayPeriodStart').value.trim());
+  if(!topStart){
+    errEl.textContent = 'Enter a valid Pay Period Start date above before building the table.';
+    return;
+  }
+
+  periodDates = computePeriodsFromFirstStart(topStart, frequency, n);
+  currentFrequency = frequency;
+
+  Object.keys(cellValues).forEach(k=>{
+    const r = parseInt(k.split('|')[0], 10);
+    if(r >= n) delete cellValues[k];
+  });
+
+  numRows = n;
+  renderTable();
+  document.getElementById('addColumnBtn').disabled = false;
+  document.getElementById('insertRowBtn').disabled = false;
+}
+
+function recalcFromRow(fromRow, inheritStartForFromRow){
+  if(!currentFrequency) return;
+  for(let r=fromRow; r<numRows; r++){
+    if(!periodDates[r]) periodDates[r] = { start:null, end:null };
+    const shouldInherit = (r > fromRow) || (r === fromRow && inheritStartForFromRow);
+    if(shouldInherit){
+      const prevEnd = periodDates[r-1] ? periodDates[r-1].end : null;
+      if(!prevEnd) break;
+      periodDates[r].start = computeNextStart(prevEnd, currentFrequency);
+    }
+    const start = periodDates[r].start;
+    if(!start) break;
+    periodDates[r].end = computeEndFromStart(start, currentFrequency);
+  }
+}
+
+function collectRowValues(rowIndex){
+  const vals = {};
+  earningsColumns.forEach(col=>{
+    const key = rowIndex + '|' + col;
+    if(cellValues[key] !== undefined) vals[col] = cellValues[key];
+  });
+  return vals;
+}
+
+function snapshotTableState(){
+  return {
+    periodDates: periodDates.map(p => ({
+      start: p.start ? new Date(p.start) : null,
+      end: p.end ? new Date(p.end) : null
+    })),
+    cellValues: JSON.parse(JSON.stringify(cellValues)),
+    numRows: numRows
+  };
+}
+
+function restoreTableState(snap){
+  periodDates = snap.periodDates;
+  cellValues = snap.cellValues;
+  numRows = snap.numRows;
+}
+
+function hasOverlap(){
+  for(let i=0; i<periodDates.length-1; i++){
+    const a = periodDates[i], b = periodDates[i+1];
+    if(a && b && a.end && b.start && a.end >= b.start) return true;
+  }
+  return false;
+}
+
+function getOverlappingCellSet(){
+  const set = new Set();
+  for(let i=0; i<periodDates.length-1; i++){
+    const a = periodDates[i], b = periodDates[i+1];
+    if(a && b && a.end && b.start && a.end >= b.start){
+      set.add(i + '-end');
+      set.add((i+1) + '-start');
+    }
+  }
+  return set;
+}
+
+let pendingOverlapSnapshot = null;
+let pendingEndDateEdit = null;
+let overlapHighlightActive = false;
+
+function finalizeChangeWithOverlapCheck(snapshotBefore){
+  if(hasOverlap()){
+    pendingOverlapSnapshot = snapshotBefore;
+    overlapHighlightActive = false;
+    renderTable();
+    document.getElementById('overlapModal').classList.add('show');
+  } else {
+    overlapHighlightActive = false;
+    renderTable();
+  }
+}
+
+function confirmOverlapContinue(){
+  pendingOverlapSnapshot = null;
+  overlapHighlightActive = true;
+  document.getElementById('overlapModal').classList.remove('show');
+  renderTable();
+}
+
+function confirmOverlapCancel(){
+  if(pendingOverlapSnapshot){
+    restoreTableState(pendingOverlapSnapshot);
+    pendingOverlapSnapshot = null;
+  }
+  overlapHighlightActive = false;
+  document.getElementById('overlapModal').classList.remove('show');
+  renderTable();
+}
+
+function onStartDateEdit(row, value){
+  const errEl = document.getElementById('periodsError');
+  errEl.textContent = '';
+  const parsed = parseMDY(value);
+  if(!parsed){
+    if(value.length === 10) errEl.textContent = 'Enter the start date as MM/DD/YYYY.';
+    renderTable();
+    return;
+  }
+  const snapshotBefore = snapshotTableState();
+  periodDates[row].start = parsed;
+  recalcFromRow(row, false);
+  finalizeChangeWithOverlapCheck(snapshotBefore);
+}
+
+function onEndDateEdit(row, value){
+  const errEl = document.getElementById('periodsError');
+  errEl.textContent = '';
+  const parsed = parseMDY(value);
+  if(!parsed){
+    if(value.length === 10) errEl.textContent = 'Enter the end date as MM/DD/YYYY.';
+    renderTable();
+    return;
+  }
+  if(periodDates[row].start && parsed < periodDates[row].start){
+    errEl.textContent = 'End date must be on or after that row\'s start date.';
+    renderTable();
+    return;
+  }
+
+  // No next row to cascade into - apply immediately, nothing to confirm.
+  if(row >= numRows - 1){
+    applyEndDateEdit(row, parsed);
+    return;
+  }
+
+  pendingEndDateEdit = { row: row, parsed: parsed };
+  document.getElementById('endDateConfirmModal').classList.add('show');
+}
+
+function applyEndDateEdit(row, parsed){
+  const snapshotBefore = snapshotTableState();
+  periodDates[row].end = parsed;
+  recalcFromRow(row + 1, true);
+  finalizeChangeWithOverlapCheck(snapshotBefore);
+}
+
+function confirmEndDateEditContinue(){
+  document.getElementById('endDateConfirmModal').classList.remove('show');
+  if(pendingEndDateEdit){
+    const row = pendingEndDateEdit.row;
+    const parsed = pendingEndDateEdit.parsed;
+    pendingEndDateEdit = null;
+    applyEndDateEdit(row, parsed);
+  }
+}
+
+function confirmEndDateEditCancel(){
+  document.getElementById('endDateConfirmModal').classList.remove('show');
+  pendingEndDateEdit = null;
+  renderTable();
+}
+
+function openInsertRowModal(){
+  const btn = document.getElementById('insertRowBtn');
+  if(btn.disabled) return;
+  const modal = document.getElementById('insertRowModal');
+  const input = document.getElementById('insertRowStartInput');
+  input.value = '';
+  document.getElementById('insertRowError').textContent = '';
+  modal.classList.add('show');
+  setTimeout(()=>input.focus(), 0);
+}
+
+function closeInsertRowModal(){
+  document.getElementById('insertRowModal').classList.remove('show');
+}
+
+function removePeriodRow(r){
+  if(numRows <= 1){
+    alert('At least one pay period is required. Use Clear all if you want to start over.');
+    return;
+  }
+  if(!confirm('Remove this pay period row? This cannot be undone.')) return;
+
+  const snapshotBefore = snapshotTableState();
+
+  periodDates.splice(r, 1);
+
+  const newCellValues = {};
+  Object.keys(cellValues).forEach(k=>{
+    const sep = k.indexOf('|');
+    const rowIdx = parseInt(k.slice(0, sep), 10);
+    const col = k.slice(sep + 1);
+    if(rowIdx === r) return;
+    const newRowIdx = rowIdx > r ? rowIdx - 1 : rowIdx;
+    newCellValues[newRowIdx + '|' + col] = cellValues[k];
+  });
+  cellValues = newCellValues;
+  numRows = periodDates.length;
+
+  finalizeChangeWithOverlapCheck(snapshotBefore);
+}
+
+function generatePeriodChain(startDate, frequency, boundaryStart){
+  const generated = [];
+  let cur = new Date(startDate);
+  let iterations = 0;
+  while(iterations < 500){
+    if(boundaryStart && cur >= boundaryStart) break;
+    const end = computeEndFromStart(cur, frequency);
+    generated.push({ start: new Date(cur), end: new Date(end) });
+    iterations++;
+    if(!boundaryStart) break; // no next period to fill toward - just one row
+    cur = computeNextStart(end, frequency);
+  }
+  return generated;
+}
+
+function confirmInsertRow(){
+  const errEl = document.getElementById('insertRowError');
+  errEl.textContent = '';
+
+  if(!isEffectiveDateValid()){
+    errEl.textContent = 'Please enter an Effective Date.';
+    showWarningPopup('Please enter an Effective Date.');
+    return;
+  }
+
+  if(numRows === 0 || !currentFrequency){
+    errEl.textContent = 'Build the table first before inserting a row.';
+    return;
+  }
+
+  const raw = document.getElementById('insertRowStartInput').value.trim();
+  const newStart = parseMDY(raw);
+  if(!newStart){
+    errEl.textContent = 'Enter a valid start date as MM/DD/YYYY.';
+    return;
+  }
+
+  const snapshotBefore = snapshotTableState();
+
+  const combined = periodDates.map((p, i) => ({ period: p, values: collectRowValues(i) }));
+
+  // find the closest existing period that starts after the new date, to fill every missing period up to it
+  let boundaryStart = null;
+  combined.forEach(c => {
+    if(c.period.start && c.period.start > newStart){
+      if(!boundaryStart || c.period.start < boundaryStart) boundaryStart = c.period.start;
+    }
+  });
+
+  const chain = generatePeriodChain(newStart, currentFrequency, boundaryStart);
+  const newEntries = chain.map(p => ({ period: p, values: {} }));
+
+  const merged = combined.concat(newEntries);
+  merged.sort((a, b) => {
+    if(!a.period.start) return 1;
+    if(!b.period.start) return -1;
+    return a.period.start - b.period.start;
+  });
+
+  periodDates = merged.map(c => c.period);
+  cellValues = {};
+  merged.forEach((c, i) => {
+    Object.keys(c.values).forEach(col => {
+      cellValues[i + '|' + col] = c.values[col];
+    });
+  });
+  numRows = periodDates.length;
+
+  closeInsertRowModal();
+  finalizeChangeWithOverlapCheck(snapshotBefore);
+}
+
+function openAddColumnModal(){
+  const btn = document.getElementById('addColumnBtn');
+  if(btn.disabled) return;
+  const modal = document.getElementById('addColumnModal');
+  const input = document.getElementById('addColumnInput');
+  input.value = '';
+  modal.classList.add('show');
+  setTimeout(()=>input.focus(), 0);
+}
+
+function closeAddColumnModal(){
+  document.getElementById('addColumnModal').classList.remove('show');
+}
+
+function confirmAddColumn(){
+  const input = document.getElementById('addColumnInput');
+  const clean = input.value.trim();
+  if(!clean) return;
+  if(clean.includes('|')){
+    alert('Column names can\'t contain the "|" character.');
+    return;
+  }
+  if(earningsColumns.includes(clean)){
+    alert('That column already exists.');
+    return;
+  }
+  earningsColumns.push(clean);
+  renderTable();
+  closeAddColumnModal();
+}
+
+function removeEarningsColumn(col){
+  if(!confirm('Remove the "' + col + '" column? Entered values in it will be lost.')) return;
+  earningsColumns = earningsColumns.filter(c => c !== col);
+  Object.keys(cellValues).forEach(k => { if(k.endsWith('|'+col)) delete cellValues[k]; });
+  delete newRateValues[col];
+  renderTable();
+}
+
+function renameEarningsColumn(idx, newNameRaw){
+  const oldName = earningsColumns[idx];
+  const newName = newNameRaw.trim();
+
+  if(!newName || newName === oldName){
+    renderTable();
+    return;
+  }
+  if(newName.includes('|')){
+    alert('Column names can\'t contain the "|" character.');
+    renderTable();
+    return;
+  }
+  if(earningsColumns.includes(newName)){
+    alert('A column named "' + newName + '" already exists. Choose a different name.');
+    renderTable();
+    return;
+  }
+
+  earningsColumns[idx] = newName;
+
+  Object.keys(cellValues).forEach(k=>{
+    const sep = k.indexOf('|');
+    const row = k.slice(0, sep);
+    const col = k.slice(sep+1);
+    if(col === oldName){
+      cellValues[row + '|' + newName] = cellValues[k];
+      delete cellValues[k];
+    }
+  });
+
+  if(newRateValues[oldName] !== undefined){
+    newRateValues[newName] = newRateValues[oldName];
+    delete newRateValues[oldName];
+  }
+
+  renderTable();
+}
+
+function updateCell(row, col, value){
+  cellValues[row+'|'+col] = value;
+}
+
+function updateNewRate(col, value){
+  newRateValues[col] = value;
+}
+
+function renderTable(){
+  const thead = document.getElementById('periodsThead');
+  const tbody = document.getElementById('periodsTbody');
+
+  if(numRows === 0){
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    checkPeriodRestrictions();
+    return;
+  }
+
+  const etColCount = earningsColumns.length;
+
+  thead.innerHTML =
+    '<tr>' +
+      '<th class="pp-group" colspan="2">Pay periods</th>' +
+      '<th class="et-group" colspan="' + etColCount + '">Earning Hours<br><span class="et-caption">(Regular, OT, Sick, Vacation, etc.)</span></th>' +
+      '<th class="action-head" rowspan="2">Remove</th>' +
+    '</tr>' +
+    '<tr>' +
+      '<th class="sub-pp">Start date</th>' +
+      '<th class="sub-pp">End date</th>' +
+      earningsColumns.map((col, i) =>
+        '<th class="sub-et"><input type="text" class="col-name-input" value="' + col.replace(/"/g,'&quot;') + '" onchange="renameEarningsColumn(' + i + ', this.value)"><button type="button" class="col-remove" onclick="removeEarningsColumn(\'' + col.replace(/'/g,"\\'") + '\')">remove</button></th>'
+      ).join('') +
+    '</tr>';
+
+  let bodyHtml = '';
+  const overlapSet = overlapHighlightActive ? getOverlappingCellSet() : new Set();
+  for(let r=0;r<numRows;r++){
+    const p = periodDates[r] || {start:null,end:null};
+    const startVal = p.start ? toMDY(p.start) : '';
+    const endVal = p.end ? toMDY(p.end) : '';
+    const startCellClass = overlapSet.has(r + '-start') ? ' class="cell-overlap"' : '';
+    const endCellClass = overlapSet.has(r + '-end') ? ' class="cell-overlap"' : '';
+    bodyHtml += '<tr>';
+    bodyHtml += '<td' + startCellClass + '><input type="text" class="date-text" maxlength="10" placeholder="MM/DD/YYYY" value="' + startVal + '" oninput="formatDateInput(this)" onchange="onStartDateEdit(' + r + ',this.value)"></td>';
+    bodyHtml += '<td' + endCellClass + '><input type="text" class="date-text" maxlength="10" placeholder="MM/DD/YYYY" value="' + endVal + '" oninput="formatDateInput(this)" onchange="onEndDateEdit(' + r + ',this.value)"></td>';
+    earningsColumns.forEach(col=>{
+      const key = r+'|'+col;
+      const val = cellValues[key] !== undefined ? cellValues[key] : '';
+      bodyHtml += '<td><input type="number" min="0" step="0.01" placeholder="0.00" value="' + val + '" ' +
+        'onkeydown="blockArrowKeys(event)" oninput="updateCell(' + r + ',\'' + col.replace(/'/g,"\\'") + '\',this.value)"></td>';
+    });
+    bodyHtml += '<td><button type="button" class="remove-row-btn" onclick="removePeriodRow(' + r + ')">Remove</button></td>';
+    bodyHtml += '</tr>';
+  }
+
+  bodyHtml += '<tr class="new-rate-row">' +
+    '<td class="nr-blank"></td>' +
+    '<td class="nr-label">New rate</td>' +
+    earningsColumns.map(col=>{
+      const val = newRateValues[col] !== undefined ? newRateValues[col] : '';
+      return '<td><input type="number" min="0" step="0.01" placeholder="0.00" value="' + val + '" ' +
+        'onkeydown="blockArrowKeys(event)" oninput="updateNewRate(\'' + col.replace(/'/g,"\\'") + '\',this.value)"></td>';
+    }).join('') +
+    '<td class="nr-blank"></td>' +
+    '</tr>';
+
+  tbody.innerHTML = bodyHtml;
+  checkPeriodRestrictions();
+}
+
+function showWarningPopup(message){
+  document.getElementById('warningPopupText').textContent = message;
+  document.getElementById('warningPopupModal').classList.add('show');
+}
+
+function closeWarningPopup(){
+  document.getElementById('warningPopupModal').classList.remove('show');
+}
+
+function checkPeriodRestrictions(){
+  checkEffectiveDateRestriction();
+  checkOnOrAfterCoverage();
+  checkYtdEndRestriction();
+}
+
+function checkOnOrAfterCoverage(){
+  const warnEl = document.getElementById('onOrAfterWarning');
+  const wasShown = warnEl.classList.contains('show');
+  warnEl.classList.remove('show');
+  warnEl.innerHTML = '';
+
+  if(numRows === 0) return;
+
+  const effectiveDate = parseMDY(document.getElementById('effectiveDate').value.trim());
+  const onOrAfterDate = parseMDY(document.getElementById('onOrAfter').value.trim());
+  if(!effectiveDate || !onOrAfterDate) return;
+
+  let coveredOnOrAfter = false;
+  periodDates.forEach(p=>{
+    if(!p.end) return;
+    if(p.end >= onOrAfterDate && p.end < effectiveDate) coveredOnOrAfter = true;
+  });
+
+  if(!coveredOnOrAfter){
+    const msg = 'Please check the paperwork expired. No any paystub after on or after.';
+    warnEl.innerHTML = '&#9888; ' + msg;
+    warnEl.classList.add('show');
+    if(!wasShown) showWarningPopup(msg);
+  }
+}
+
+function checkEffectiveDateRestriction(){
+  const warnEl = document.getElementById('periodsWarning');
+  const wasShown = warnEl.classList.contains('show');
+  warnEl.classList.remove('show');
+  warnEl.innerHTML = '';
+
+  if(numRows === 0) return;
+
+  const effectiveDate = parseMDY(document.getElementById('effectiveDate').value.trim());
+  if(!effectiveDate) return;
+
+  let afterEffectiveFound = false;
+  periodDates.forEach(p=>{
+    if(!p.end) return;
+    if(p.end >= effectiveDate) afterEffectiveFound = true;
+  });
+
+  if(afterEffectiveFound){
+    const msg = 'The pay period end date of all the paystubs must be before effective date.';
+    warnEl.innerHTML = '&#9888; ' + msg;
+    warnEl.classList.add('show');
+    if(!wasShown) showWarningPopup(msg);
+  }
+}
+
+function checkYtdEndRestriction(){
+  const warnEl = document.getElementById('ytdWarning');
+  const wasShown = warnEl.classList.contains('show');
+  warnEl.classList.remove('show');
+  warnEl.innerHTML = '';
+
+  if(numRows === 0) return;
+
+  const lastEnd = periodDates.length ? periodDates[periodDates.length - 1].end : null;
+  const ytdEndDate = parseMDY(document.getElementById('ytdEnd').value.trim());
+
+  if(lastEnd && ytdEndDate && ytdEndDate > lastEnd){
+    const msg = 'Please check the YTD end date. This should not be greater than pay end date';
+    warnEl.innerHTML = '&#9888; ' + msg;
+    warnEl.classList.add('show');
+    if(!wasShown) showWarningPopup(msg);
+  }
+}
+
+renderTable();
+
+/* ---------- Combined wage increase summary ---------- */
+
+const periodsPerYearMap = { weekly:52, biweekly:26, semimonthly:24, monthly:12 };
+
+function money(n){
+  return '$' + n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function trimNum(n){
+  return parseFloat(n.toFixed(4)).toString();
+}
+
+function calculateAndExport(){
+  calculateSummary();
+  const errText = document.getElementById('summaryCalcError').textContent;
+  if(!errText){
+    exportData();
+  }
+}
+
+function calculateSummary(){
+  const errEl = document.getElementById('summaryCalcError');
+  const wrap = document.getElementById('summaryWrap');
+  const textEl = document.getElementById('summaryText');
+  errEl.textContent = '';
+  wrap.style.display = 'none';
+
+  if(!isEffectiveDateValid()){
+    errEl.textContent = 'Please enter an Effective Date.';
+    showWarningPopup('Please enter an Effective Date.');
+    return;
+  }
+
+  const employer = document.getElementById('employerName').value.trim() || 'Not provided';
+
+  /* --- Paystub-average portion --- */
+  if(numRows === 0){
+    errEl.textContent = 'Build the pay periods table and enter hours + a new rate before calculating.';
+    return;
+  }
+  const frequency = getPayFrequencyKey();
+  if(!frequency){
+    errEl.textContent = 'Enter valid Pay Period Start and End dates above so Pay Frequency can be determined.';
+    return;
+  }
+  const periodsPerYear = periodsPerYearMap[frequency];
+
+  const qualifying = [];
+  earningsColumns.forEach(col=>{
+    const values = [];
+    for(let r=0;r<numRows;r++){
+      const raw = cellValues[r+'|'+col];
+      if(raw !== undefined && raw !== '' && !isNaN(Number(raw))){
+        values.push(Number(raw));
+      }
+    }
+    const rateRaw = newRateValues[col];
+    const rate = (rateRaw !== undefined && rateRaw !== '' && !isNaN(Number(rateRaw))) ? Number(rateRaw) : null;
+    if(values.length > 0 && rate !== null){
+      const avg = values.reduce((a,b)=>a+b,0) / values.length;
+      const annual = avg * rate * periodsPerYear;
+      qualifying.push({ col, values, avg, rate, annual });
+    }
+  });
+
+  if(qualifying.length === 0){
+    errEl.textContent = 'Enter hours for at least one earnings-type column and its "New rate" before calculating.';
+    return;
+  }
+
+  const paystubAnnualTotal = qualifying.reduce((s,q)=>s+q.annual,0);
+
+  /* --- YTD portion (optional) --- */
+  const ytdRaw = document.getElementById('ytdEarnings').value.trim();
+  const startRaw = document.getElementById('ytdStart').value.trim();
+  const endRaw = document.getElementById('ytdEnd').value.trim();
+  const ytdProvided = ytdRaw !== '' || startRaw !== '' || endRaw !== '';
+
+  let ytdEarnings = null, startDate = null, endDate = null;
+  let days = null, weeks = null, weeklyRate = null, ytdAnnual = null;
+
+  if(ytdProvided){
+    ytdEarnings = Number(ytdRaw);
+    if(!ytdRaw || isNaN(ytdEarnings) || ytdEarnings < 0){
+      errEl.textContent = 'Enter a valid numeric YTD earnings amount above, or leave all three YTD fields blank to skip it.';
+      return;
+    }
+    startDate = parseMDY(startRaw);
+    endDate = parseMDY(endRaw);
+    if(!startDate || !endDate){
+      errEl.textContent = 'Enter valid YTD start and end dates (MM/DD/YYYY) above, or leave all three YTD fields blank to skip it.';
+      return;
+    }
+    if(startDate > endDate){
+      errEl.textContent = 'YTD start date must be before the YTD end date.';
+      return;
+    }
+    days = Math.round((endDate - startDate) / 86400000) + 1;
+    weeks = Math.round((days / 7) * 100) / 100;
+    weeklyRate = Math.round((ytdEarnings / weeks) * 10000) / 10000;
+    ytdAnnual = weeklyRate * 52;
+  }
+
+  /* --- Build the plain-text summary --- */
+  const lines = [];
+  lines.push('Employer: ' + employer);
+  lines.push('');
+  if(ytdProvided){
+    lines.push('Annualized Amount (from YTD): ' + money(ytdAnnual));
+    lines.push('');
+  }
+  lines.push('Annualized Amount (from paystub average): ' + money(paystubAnnualTotal));
+  lines.push('');
+  lines.push('Paystubs Raise Work:');
+  qualifying.forEach(q=>{
+    lines.push(q.col + ' Hours:');
+    lines.push('(' + q.values.map(trimNum).join(' + ') + ') / ' + q.values.length + ' = ' + q.avg.toFixed(2));
+  });
+  lines.push('');
+  qualifying.forEach(q=>{
+    lines.push('Total ' + q.col + ' Hours:');
+    lines.push('(' + q.avg.toFixed(2) + ' * $' + q.rate.toFixed(2) + ') * ' + periodsPerYear + ' = ' + money(q.annual));
+  });
+  lines.push('');
+  lines.push('Annual Amount:');
+  lines.push(qualifying.map(q=>money(q.annual)).join(' + ') + ' = ' + money(paystubAnnualTotal));
+
+  if(ytdProvided){
+    lines.push('');
+    lines.push('------------------------------------------------------');
+    lines.push('YTD Work:');
+    lines.push(toMDY(startDate) + ' to ' + toMDY(endDate) + ' = ' + days + ' days');
+    lines.push(days + ' / 7 = ' + weeks.toFixed(2) + ' Weeks');
+    lines.push(money(ytdEarnings) + ' / ' + weeks.toFixed(2) + ' Weeks = $' + weeklyRate.toFixed(4) + ' per week');
+    lines.push('$' + weeklyRate.toFixed(4) + ' * 52 Weeks = ' + money(ytdAnnual) + ' per year');
+  }
+
+  textEl.textContent = lines.join('\n');
+  wrap.style.display = 'block';
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.textContent = 'Copy to clipboard';
+  copyBtn.classList.remove('copied');
+}
+
+function copySummary(){
+  const text = document.getElementById('summaryText').textContent;
+  const btn = document.getElementById('copyBtn');
+  function done(){
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = 'Copy to clipboard'; btn.classList.remove('copied'); }, 1800);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>{ fallbackCopy(text, done); });
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+/* ---------- Tabs ---------- */
+
+function switchTab(name){
+  document.getElementById('tabCalculator').classList.toggle('active', name === 'calculator');
+  document.getElementById('tabSaved').classList.toggle('active', name === 'saved');
+  document.getElementById('tabBtnCalculator').classList.toggle('active', name === 'calculator');
+  document.getElementById('tabBtnSaved').classList.toggle('active', name === 'saved');
+}
+
+/* ---------- Clear all ---------- */
+
+function clearErrors(){
+  ['paystubsError','ytdError','dateError'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = '';
+  });
+  const paystubsField = document.getElementById('paystubsField');
+  if(paystubsField) paystubsField.classList.remove('error');
+  const ytdField = document.getElementById('ytdField');
+  if(ytdField) ytdField.classList.remove('error');
+}
+
+function clearAll(){
+  if(!confirm('Clear every field, the pay periods table, and the calculated summary? This cannot be undone.')) return;
+
+  document.getElementById('employerName').value = '';
+  document.getElementById('fileLink').value = '';
+  document.getElementById('topPayPeriodStart').value = '';
+  document.getElementById('topPayPeriodEnd').value = '';
+  document.getElementById('topPayPeriodStartPicker').value = '';
+  document.getElementById('topPayPeriodEndPicker').value = '';
+  document.getElementById('topPaystubFrequency').value = '';
+  document.getElementById('numPaystubs').value = '';
+  document.getElementById('effectiveDate').value = '';
+  document.getElementById('effectiveDatePicker').value = '';
+  document.getElementById('onOrAfter').value = '';
+  document.getElementById('ytdEarnings').value = '';
+  document.getElementById('ytdStart').value = '';
+  document.getElementById('ytdEnd').value = '';
+  clearErrors();
+  document.getElementById('periodsError').textContent = '';
+  document.getElementById('summaryCalcError').textContent = '';
+  document.getElementById('summaryWrap').style.display = 'none';
+  document.getElementById('summaryText').textContent = '';
+
+  earningsColumns = ['Regular','OT','Sick','Vacation'];
+  numRows = 0;
+  periodDates = [];
+  cellValues = {};
+  newRateValues = {};
+  currentFrequency = null;
+  pendingOverlapSnapshot = null;
+  pendingEndDateEdit = null;
+  overlapHighlightActive = false;
+  document.getElementById('overlapModal').classList.remove('show');
+  document.getElementById('endDateConfirmModal').classList.remove('show');
+  closeWarningPopup();
+  closeInsertRowModal();
+  renderTable();
+  document.getElementById('addColumnBtn').disabled = true;
+  document.getElementById('insertRowBtn').disabled = true;
+  closeAddColumnModal();
+}
+
+/* ---------- Save calculation (in-memory, this session only) ---------- */
+
+let savedCalculations = [];
+
+function saveCalculation(){
+  const text = document.getElementById('summaryText').textContent;
+  if(!text) return;
+  const employer = document.getElementById('employerName').value.trim() || 'Not provided';
+  savedCalculations.push({
+    employer: employer,
+    savedAt: new Date().toLocaleString(),
+    text: text
+  });
+  renderSavedList();
+  switchTab('saved');
+}
+
+function deleteSavedCalculation(index){
+  if(!confirm('Delete this saved calculation?')) return;
+  savedCalculations.splice(index,1);
+  renderSavedList();
+}
+
+function copySavedCalculation(index){
+  const text = savedCalculations[index].text;
+  function done(){}
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(()=>{ fallbackCopy(text, done); });
+  } else {
+    fallbackCopy(text, done);
+  }
+  alert('Copied to clipboard.');
+}
+
+function renderSavedList(){
+  const wrap = document.getElementById('savedListWrap');
+  if(savedCalculations.length === 0){
+    wrap.innerHTML = '<div class="saved-empty">No calculations saved yet.</div>';
+    return;
+  }
+  let html = '';
+  savedCalculations.forEach((c, i)=>{
+    html += '<div class="saved-card">' +
+      '<div class="saved-card-head">' +
+        '<div><span class="saved-title">' + c.employer + '</span> &nbsp; <span class="saved-time">' + c.savedAt + '</span></div>' +
+        '<div class="saved-card-actions">' +
+          '<button type="button" class="btn-sm" onclick="copySavedCalculation(' + i + ')">Copy</button>' +
+          '<button type="button" class="btn-sm danger" onclick="deleteSavedCalculation(' + i + ')">Delete</button>' +
+        '</div>' +
+      '</div>' +
+      '<pre>' + c.text.replace(/</g,'&lt;') + '</pre>' +
+    '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+/* ---------- Export / Import full data (for resuming an audit later) ---------- */
+
+function exportData(){
+  const state = {
+    employer: document.getElementById('employerName').value,
+    fileLink: document.getElementById('fileLink').value,
+    topPayPeriodStart: document.getElementById('topPayPeriodStart').value,
+    topPayPeriodEnd: document.getElementById('topPayPeriodEnd').value,
+    numPaystubs: document.getElementById('numPaystubs').value,
+    effectiveDate: document.getElementById('effectiveDate').value,
+    onOrAfter: document.getElementById('onOrAfter').value,
+    ytdEarnings: document.getElementById('ytdEarnings').value,
+    ytdStart: document.getElementById('ytdStart').value,
+    ytdEnd: document.getElementById('ytdEnd').value,
+    earningsColumns: earningsColumns,
+    numRows: numRows,
+    periodDates: periodDates.map(p => ({
+      start: p.start ? toMDY(p.start) : null,
+      end: p.end ? toMDY(p.end) : null
+    })),
+    cellValues: cellValues,
+    newRateValues: newRateValues
+  };
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const employerTrim = (state.employer || '').trim();
+  const fileLinkTrim = (state.fileLink || '').trim();
+  let baseName = fileLinkTrim && employerTrim
+    ? fileLinkTrim + ' + ' + employerTrim
+    : (fileLinkTrim || employerTrim || 'wage-increase');
+  const nameSafe = baseName.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'wage-increase';
+  a.href = url;
+  a.download = nameSafe + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let state;
+    try{
+      state = JSON.parse(e.target.result);
+    }catch(err){
+      alert('Could not read that file. Please choose a valid exported JSON file.');
+      return;
+    }
+
+    document.getElementById('employerName').value = state.employer || '';
+    document.getElementById('fileLink').value = state.fileLink || '';
+    document.getElementById('topPayPeriodStart').value = state.topPayPeriodStart || '';
+    document.getElementById('topPayPeriodEnd').value = state.topPayPeriodEnd || '';
+    calcTopPaystubFrequency();
+    document.getElementById('numPaystubs').value = state.numPaystubs || '';
+    document.getElementById('effectiveDate').value = state.effectiveDate || '';
+    document.getElementById('onOrAfter').value = state.onOrAfter || '';
+    document.getElementById('ytdEarnings').value = state.ytdEarnings || '';
+    document.getElementById('ytdStart').value = state.ytdStart || '';
+    document.getElementById('ytdEnd').value = state.ytdEnd || '';
+
+    earningsColumns = Array.isArray(state.earningsColumns) && state.earningsColumns.length
+      ? state.earningsColumns : ['Regular','OT','Sick','Vacation'];
+    numRows = Number(state.numRows) || 0;
+    periodDates = (state.periodDates || []).map(p => ({
+      start: p.start ? parseMDY(p.start) : null,
+      end: p.end ? parseMDY(p.end) : null
+    }));
+    cellValues = state.cellValues || {};
+    newRateValues = state.newRateValues || {};
+    currentFrequency = numRows > 0 ? getPayFrequencyKey() : null;
+
+    clearErrors();
+    document.getElementById('periodsError').textContent = '';
+    document.getElementById('summaryCalcError').textContent = '';
+    document.getElementById('summaryWrap').style.display = 'none';
+
+    renderTable();
+    document.getElementById('addColumnBtn').disabled = (numRows === 0);
+    document.getElementById('insertRowBtn').disabled = (numRows === 0);
+    switchTab('calculator');
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- Keyboard shortcuts ---------- */
+/* Ctrl+Shift+Enter (or Cmd+Shift+Enter on Mac) triggers Calculate & Export.
+   Chosen to avoid conflicts with common browser/OS shortcuts (Ctrl+S, Ctrl+P,
+   Ctrl+Shift+C/I/J devtools shortcuts, etc). Disabled while typing in a field. */
+document.addEventListener('keydown', function(e){
+  const tag = (e.target && e.target.tagName || '').toLowerCase();
+  const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || (e.target && e.target.isContentEditable);
+  if(isTyping) return;
+
+  if((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter'){
+    e.preventDefault();
+    calculateAndExport();
+  }
+});
+</script>
+
+</body>
+</html>
