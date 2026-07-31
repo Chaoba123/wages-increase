@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://chaoba123.github.io/wages-increase/sitemap.xml
