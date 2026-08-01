@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="google-site-verification" content="bVmWkWBi03IUN__mRbfP5LK5XMAfrGOn1oaMpF9Lcwo" />
-<meta name="description"
-      content="paystub wage increases and compare salary adjustments.">
+<meta name="description" content="paystub wage increases and compare salary adjustments.">
 <title>Wage Increase Calculator</title>
 
  <script type="application/ld+json">
@@ -836,6 +835,7 @@
       <button type="button" class="btn-sm" onclick="calculateAndExport()" title="Keyboard shortcut: Ctrl+Shift+Enter (Cmd+Shift+Enter on Mac)">Calculate wage increase &amp; export data <span class="shortcut-hint">(Ctrl+Shift+Enter)</span></button>
     </div>
     <div class="calc-error" id="summaryCalcError"></div>
+    <div class="periods-warning" id="annualMismatchWarning"></div>
     <div id="summaryWrap" style="display:none;">
       <pre class="summary-box" id="summaryText"></pre>
       <button type="button" class="btn-sm" id="copyBtn" onclick="copySummary()">Copy to clipboard</button>
@@ -873,10 +873,13 @@
     <h3>Insert pay period</h3>
     <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.7px;color:var(--ink-soft);font-weight:600;display:block;margin-bottom:4px;">Start date</label>
     <input type="text" id="insertRowStartInput" class="date-text" style="width:100%;box-sizing:border-box;" maxlength="10" placeholder="MM/DD/YYYY" oninput="formatDateInput(this)" onkeydown="if(event.key==='Enter'){confirmInsertRow();}else if(event.key==='Escape'){closeInsertRowModal();}">
+    <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.7px;color:var(--ink-soft);font-weight:600;display:block;margin:10px 0 4px;">Number of rows</label>
+    <input type="text" id="insertRowCountInput" inputmode="numeric" style="width:100%;box-sizing:border-box;font-family:'IBM Plex Mono',monospace;font-size:14px;padding:9px 10px;border:1px solid var(--line);border-radius:3px;background:#FBFBF9;color:var(--ink);" placeholder="e.g. 1" value="1" onkeydown="if(event.key==='Enter'){confirmInsertRow();}else if(event.key==='Escape'){closeInsertRowModal();}">
     <div class="error-msg" id="insertRowError" style="margin-top:6px;"></div>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:10px 0 0;line-height:1.5;">
-      Fills in every missing pay period between this date and the next existing one, based on Pay Frequency,
-      then re-sorts the table chronologically.
+      Creates the specified number of pay periods starting from this date, based on Pay Frequency, then re-sorts
+      the table chronologically. Any period that already exists in the table is left untouched (never duplicated
+      or replaced).
     </p>
     <div class="modal-actions">
       <button type="button" class="btn-sm" onclick="closeInsertRowModal()">Cancel</button>
@@ -1307,6 +1310,7 @@ function openInsertRowModal(){
   const modal = document.getElementById('insertRowModal');
   const input = document.getElementById('insertRowStartInput');
   input.value = '';
+  document.getElementById('insertRowCountInput').value = '1';
   document.getElementById('insertRowError').textContent = '';
   modal.classList.add('show');
   setTimeout(()=>input.focus(), 0);
@@ -1342,19 +1346,28 @@ function removePeriodRow(r){
   finalizeChangeWithOverlapCheck(snapshotBefore);
 }
 
-function generatePeriodChain(startDate, frequency, boundaryStart){
+function periodExistsAt(existingPeriods, start){
+  return existingPeriods.some(p => p.start && start && p.start.getTime() === start.getTime());
+}
+
+function generatePeriodChainByCount(startDate, frequency, count, existingPeriods){
   const generated = [];
+  let skippedCount = 0;
   let cur = new Date(startDate);
-  let iterations = 0;
-  while(iterations < 500){
-    if(boundaryStart && cur >= boundaryStart) break;
+
+  for(let i=0; i<count; i++){
     const end = computeEndFromStart(cur, frequency);
-    generated.push({ start: new Date(cur), end: new Date(end) });
-    iterations++;
-    if(!boundaryStart) break; // no next period to fill toward - just one row
+
+    if(periodExistsAt(existingPeriods, cur)){
+      skippedCount++;
+    } else {
+      generated.push({ start: new Date(cur), end: new Date(end) });
+    }
+
     cur = computeNextStart(end, frequency);
   }
-  return generated;
+
+  return { generated: generated, skippedCount: skippedCount };
 }
 
 function confirmInsertRow(){
@@ -1379,20 +1392,25 @@ function confirmInsertRow(){
     return;
   }
 
+  const countRaw = document.getElementById('insertRowCountInput').value.trim();
+  const count = Number(countRaw);
+  if(!countRaw || !/^\d+$/.test(countRaw) || count <= 0){
+    errEl.textContent = 'Enter a whole number greater than 0 for "Number of rows".';
+    return;
+  }
+
   const snapshotBefore = snapshotTableState();
 
   const combined = periodDates.map((p, i) => ({ period: p, values: collectRowValues(i) }));
 
-  // find the closest existing period that starts after the new date, to fill every missing period up to it
-  let boundaryStart = null;
-  combined.forEach(c => {
-    if(c.period.start && c.period.start > newStart){
-      if(!boundaryStart || c.period.start < boundaryStart) boundaryStart = c.period.start;
-    }
-  });
+  const { generated, skippedCount } = generatePeriodChainByCount(newStart, currentFrequency, count, periodDates);
 
-  const chain = generatePeriodChain(newStart, currentFrequency, boundaryStart);
-  const newEntries = chain.map(p => ({ period: p, values: {} }));
+  if(generated.length === 0){
+    errEl.textContent = 'Every pay period in that range already exists in the table - nothing to insert.';
+    return;
+  }
+
+  const newEntries = generated.map(p => ({ period: p, values: {} }));
 
   const merged = combined.concat(newEntries);
   merged.sort((a, b) => {
@@ -1411,6 +1429,11 @@ function confirmInsertRow(){
   numRows = periodDates.length;
 
   closeInsertRowModal();
+
+  if(skippedCount > 0){
+    showWarningPopup(skippedCount + ' of the requested pay period(s) already existed in the table and were left unchanged. ' + generated.length + ' new row(s) were added.');
+  }
+
   finalizeChangeWithOverlapCheck(snapshotBefore);
 }
 
@@ -1560,6 +1583,7 @@ function renderTable(){
     '</tr>';
 
   tbody.innerHTML = bodyHtml;
+  syncYtdEndDate();
   checkPeriodRestrictions();
 }
 
@@ -1570,6 +1594,14 @@ function showWarningPopup(message){
 
 function closeWarningPopup(){
   document.getElementById('warningPopupModal').classList.remove('show');
+}
+
+function syncYtdEndDate(){
+  if(numRows === 0 || periodDates.length === 0) return;
+  const lastPeriod = periodDates[periodDates.length - 1];
+  if(lastPeriod && lastPeriod.end){
+    document.getElementById('ytdEnd').value = toMDY(lastPeriod.end);
+  }
 }
 
 function checkPeriodRestrictions(){
@@ -1752,6 +1784,22 @@ function calculateSummary(){
     ytdAnnual = weeklyRate * 52;
   }
 
+  /* --- Flag a significant discrepancy between the two annualized methods --- */
+  const mismatchEl = document.getElementById('annualMismatchWarning');
+  mismatchEl.classList.remove('show');
+  mismatchEl.innerHTML = '';
+  const SIGNIFICANT_DIFF_THRESHOLD_PCT = 5; // adjustable tolerance
+  if(ytdProvided && ytdAnnual > 0 && paystubAnnualTotal > 0){
+    const larger = Math.max(ytdAnnual, paystubAnnualTotal);
+    const pctDiff = (Math.abs(paystubAnnualTotal - ytdAnnual) / larger) * 100;
+    if(pctDiff > SIGNIFICANT_DIFF_THRESHOLD_PCT){
+      const mismatchMsg = 'A significant difference has been detected between the Annualized Amount (from YTD) and the Annualized Amount (from Paystub Average). This may indicate that one or more values have been entered incorrectly or are incomplete. Please review the pay period dates, earnings, YTD values, and other input data before relying on the calculation results.';
+      mismatchEl.innerHTML = '&#9888; ' + mismatchMsg;
+      mismatchEl.classList.add('show');
+      showWarningPopup(mismatchMsg);
+    }
+  }
+
   /* --- Build the plain-text summary --- */
   const lines = [];
   lines.push('Employer: ' + employer);
@@ -1862,6 +1910,8 @@ function clearAll(){
   clearErrors();
   document.getElementById('periodsError').textContent = '';
   document.getElementById('summaryCalcError').textContent = '';
+  document.getElementById('annualMismatchWarning').classList.remove('show');
+  document.getElementById('annualMismatchWarning').innerHTML = '';
   document.getElementById('summaryWrap').style.display = 'none';
   document.getElementById('summaryText').textContent = '';
 
@@ -1942,6 +1992,16 @@ function renderSavedList(){
 
 /* ---------- Export / Import full data (for resuming an audit later) ---------- */
 
+function extractFirstNumericSegment(str){
+  if(!str) return null;
+  const parts = str.split('/');
+  for(let i=0;i<parts.length;i++){
+    const trimmed = parts[i].trim();
+    if(/^\d+$/.test(trimmed)) return trimmed;
+  }
+  return null;
+}
+
 function exportData(){
   const state = {
     employer: document.getElementById('employerName').value,
@@ -1968,9 +2028,15 @@ function exportData(){
   const a = document.createElement('a');
   const employerTrim = (state.employer || '').trim();
   const fileLinkTrim = (state.fileLink || '').trim();
-  let baseName = fileLinkTrim && employerTrim
-    ? fileLinkTrim + ' + ' + employerTrim
-    : (fileLinkTrim || employerTrim || 'wage-increase');
+  const numericSegment = extractFirstNumericSegment(fileLinkTrim);
+  let baseName;
+  if(numericSegment){
+    baseName = (employerTrim || 'wage-increase') + '_' + numericSegment;
+  } else {
+    baseName = fileLinkTrim && employerTrim
+      ? fileLinkTrim + ' + ' + employerTrim
+      : (fileLinkTrim || employerTrim || 'wage-increase');
+  }
   const nameSafe = baseName.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'wage-increase';
   a.href = url;
   a.download = nameSafe + '.json';
